@@ -1,0 +1,2 @@
+# LehighKalshiQuant
+Kalshi portfolio project
