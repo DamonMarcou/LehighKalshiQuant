@@ -91,5 +91,10 @@ class no_authentication_endpoints:
         df = pd.DataFrame(flattened_data)
         #make conversion to date time format so its more readable
         df['end_period_dt'] = pd.to_datetime(df['end_period_ts'], unit='s')
+        
+        cols = list(df.columns)#switch unix timestamp and datetime columns
+        i, j = cols.index('end_period_ts'), cols.index('end_period_dt')
+        cols[i], cols[j] = cols[j], cols[i]
+        df = df[cols]
 
         return df 

@@ -1,6 +1,7 @@
 import requests
 import datetime
 import base64
+import uuid
 from no_authentication_endpoints import no_authentication_endpoints
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
@@ -71,4 +72,35 @@ class authentication_endpoints(no_authentication_endpoints):
         response = self.get(self.private_key, self.API_KEY_ID, "/trade-api/v2/portfolio/order_groups")
         return response.json()
         
-        
+    def post(self,private_key, api_key_id, path, data, base_url=None):
+        """Make an authenticated POST request to the Kalshi API."""
+        if(base_url==None):
+            base_url=self.BASE_URL
+        timestamp = str(int(datetime.datetime.now().timestamp() * 1000))
+        signature = self.create_signature(private_key, timestamp, "POST", path)
+
+        headers = {
+            'KALSHI-ACCESS-KEY': api_key_id,
+            'KALSHI-ACCESS-SIGNATURE': signature,
+            'KALSHI-ACCESS-TIMESTAMP': timestamp,
+            'Content-Type': 'application/json'
+        }
+
+        return requests.post(base_url + path, headers=headers, json=data)
+    
+    def place_limit_order(self,market_id:str, sell_or_buy:str, yes_or_no:str, contract_count:int,price:int):
+        '''
+        sell_or_buy must be buy or sell string, yes_or_no must be yes or no string
+        '''
+        order_data = {
+            "ticker": market_id,
+            "action": sell_or_buy,
+            "side": yes_or_no,
+            "count": contract_count,
+            "type": 'limit',
+            "yes_price": price,
+            "client_order_id": str(uuid.uuid4())  # Unique ID for deduplication
+        }
+        response = self.post(self.private_key, self.API_KEY_ID, '/trade-api/v2/portfolio/orders', order_data)
+        return response
+    
