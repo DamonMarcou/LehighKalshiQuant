@@ -60,3 +60,23 @@ class useful_tools:
         
         plt.tight_layout()
         plt.show()
+        
+    def covariance_matrix(self, returns1:list, returns2:list, graph:bool=False):#aligns the start dates, true or false for graph
+        r1 = np.array(returns1)
+        r2 = np.array(returns2)
+
+        # Trim the start of the longer array so both end at the same index
+        if r1.size > r2.size:
+            r1 = r1[-r2.size:]   
+        elif r2.size > r1.size:
+            r2 = r2[-r1.size:]
+        data = np.vstack([r1,r2])
+        cov_m = np.cov(data)
+        if graph==False:
+            return cov_m
+        else:
+            
+            df =pd.DataFrame(data.T, columns=['Contract 1', 'Contract2'])
+            sns.heatmap(df.corr(), annot=True, fmt=".4f", cmap="coolwarm")
+
+            sns.pairplot(df)

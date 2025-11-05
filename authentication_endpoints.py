@@ -47,6 +47,18 @@ class authentication_endpoints(no_authentication_endpoints):
         }
 
         return requests.get(base_url + path, headers=headers)
+    def get_order_book(self, market_id):
+        """
+        The order book shows all active bid orders for both yes and no sides of a binary market.
+        don't forget about the reciprical nature of the contracts: yes bid at 20 is used for same order of no ask at 80 
+        It returns yes bids and no bids only! 
+        if you index by no or yes format is in [cents, contracts available]
+        if you index by no_dollars or yes_dollars format is in [dollars, contracts available]
+        """
+        
+        orderbook_response = self.get(self.private_key, self.API_KEY_ID, f"/trade-api/v2/markets/{market_id}/orderbook")
+        orderbook_data = orderbook_response.json()
+        return orderbook_data
 
     def get_portfolio_balance(self):#cash available in account in dollars
         response = self.get(self.private_key, self.API_KEY_ID, "/trade-api/v2/portfolio/balance")
@@ -104,3 +116,27 @@ class authentication_endpoints(no_authentication_endpoints):
         response = self.post(self.private_key, self.API_KEY_ID, '/trade-api/v2/portfolio/orders', order_data)
         return response
     
+    def place_trades_given_portfolio_at_closest_bid(self, portfolio:dict):
+        '''
+        portfolio is a dictionary that points to 2d array with each market as an array with its tickers/yes_or_no trade as another. order of ticker array is series, event, market
+        for example, yess/no  ' 'Politics': [['KXGOVSHUTLENGTH', 'KXGOVSHUTLENGTH-26JAN01','KXGOVSHUTLENGTH-26JAN01-38D'],['KXEPSTEINBILL','KXEPSTEINBILL-26JAN01', 'KXEPSTEINBILL-26JAN01']]
+        '''
+        for sector in portfolio.keys():
+            for market in range(len(portfolio[sector])):
+                market_ticker = portfolio[sector][market][2]
+                try:
+                    
+                    yes_or_no_trade  = portfolio[sector][market][3]
+                    orderbook  = self.get_order_book(market_ticker)
+                    
+                    closest_price = 0 
+                    if yes_or_no_trade=='yes':
+                        closest_price = 100 - int(orderbook['orderbook']['no'][-1][0])
+                    elif yes_or_no_trade=='no':
+                        closest_price = 100- int(orderbook['orderbook']['yes'][-1][0])
+                    print(closest_price)
+                    self.place_limit_order(market_ticker,'buy',yes_or_no_trade,1, closest_price)
+                except Exception:
+                    print(f'order_issue for {market_ticker}')
+            
+            

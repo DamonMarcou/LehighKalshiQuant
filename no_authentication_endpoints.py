@@ -2,6 +2,8 @@
 import requests
 from datetime import datetime, timezone
 import pandas as pd
+from useful_tools import useful_tools
+import numpy as np
 
 class no_authentication_endpoints:
     
@@ -30,18 +32,7 @@ class no_authentication_endpoints:
         response = requests.get(url)
         market_data = response.json()
         return market_data
-    def get_order_book(market_id):
-        """
-        The order book shows all active bid orders for both yes and no sides of a binary market.
-        don't forget about the reciprical nature of the contracts: yes bid at 20 is used for same order of no ask at 80 
-        It returns yes bids and no bids only! 
-        if you index by no or yes format is in [cents, contracts available]
-        if you index by no_dollars or yes_dollars format is in [dollars, contracts available]
-        """
-        orderbook_url = f"https://api.elections.kalshi.com/trade-api/v2/markets/{market_id}/orderbook"
-        orderbook_response = requests.get(orderbook_url)
-        orderbook_data = orderbook_response.json()
-        return orderbook_data
+    
     
     def get_candle_sticks(self, series_id, market_id, period_interval:int, start=None, end=None):#will make an integration for custom start/end later
         '''
@@ -98,3 +89,11 @@ class no_authentication_endpoints:
         df = df[cols]
 
         return df 
+    def pairplot_and_heatmap_given_2_markets(self,series1, market1, series2, market2, period_interval):
+        
+        df = self.candle_sticks_in_pandas(series1, market1, period_interval)
+        df2 = self.candle_sticks_in_pandas(series2, market2, period_interval)
+        returns = np.log(df['yes_bid_close']/ df['yes_bid_close'].shift(1)).dropna()
+        returns2 = np.log(df2['yes_bid_close']/ df2['yes_bid_close'].shift(1)).dropna()
+        ut  = useful_tools()
+        ut.covariance_matrix(returns, returns2,True)
