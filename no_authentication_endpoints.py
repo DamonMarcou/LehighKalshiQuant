@@ -21,6 +21,45 @@ class no_authentication_endpoints:
         markets_data = markets_response.json()
         return markets_data
 
+    def get_all_markets(self, series_ticker):
+        """Fetch all markets for a series, handling pagination"""
+        all_markets = []
+        cursor = None
+        base_url = "https://api.elections.kalshi.com/trade-api/v2/markets"
+
+        while True:
+            # Build URL with cursor if we have one
+            url = f"{base_url}?series_ticker={series_ticker}&limit=100"
+            if cursor:
+                url += f"&cursor={cursor}"
+
+            response = requests.get(url)
+            data = response.json()
+
+            # Add markets from this page
+            all_markets.extend(data['markets'])
+
+            # Check if there are more pages
+            cursor = data.get('cursor')
+            if not cursor:
+                break
+
+            print(f"Fetched {len(data['markets'])} markets, total: {len(all_markets)}")
+
+        return all_markets
+
+    def list_of_all_historical_markets_in_a_series(self,series_ticker):
+        markets = self.get_all_markets(series_ticker)
+        market_list = []
+        for market_dict in markets:
+            m = market_dict['ticker']
+            market_list.append(m)
+        return market_list
+   
+
+
+
+
     def get_event_info(self,event_id)-> dict:#an event is a collection of markets
         event_url = f"https://api.elections.kalshi.com/trade-api/v2/events/{event_id}"
         event_response = requests.get(event_url)
