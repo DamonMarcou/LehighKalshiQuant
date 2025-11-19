@@ -10,7 +10,10 @@ class useful_tools:
         pass
     def sharpe_ratio(self,returns):
         return np.mean(returns)/np.std(returns)
-        
+    def mid_price_returns(self,df ):
+        df['mid'] = (df['yes_bid_close'] + df['yes_ask_close']) / 2
+        returns = np.log(df['mid'] / df['mid'].shift(1)).replace([np.inf, -np.inf], np.nan).dropna()   
+        return returns
         
     def prob_plot(self, data):
         '''
@@ -80,3 +83,5 @@ class useful_tools:
             sns.heatmap(df.corr(), annot=True, fmt=".4f", cmap="coolwarm")
 
             sns.pairplot(df)
+            
+    

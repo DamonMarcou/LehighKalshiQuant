@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 import pandas as pd
 from useful_tools import useful_tools
 import numpy as np
-
+import seaborn as sns
 class no_authentication_endpoints:
     
     def __init__(self):
-        pass
+        self.ut  = useful_tools()
     def get_series_info(self,series_id)->dict:#a series is a collection of related events
         url = f"https://api.elections.kalshi.com/trade-api/v2/series/{series_id}"
         response = requests.get(url)
@@ -132,7 +132,26 @@ class no_authentication_endpoints:
         
         df = self.candle_sticks_in_pandas(series1, market1, period_interval)
         df2 = self.candle_sticks_in_pandas(series2, market2, period_interval)
-        returns = np.log(df['yes_bid_close']/ df['yes_bid_close'].shift(1)).dropna()
-        returns2 = np.log(df2['yes_bid_close']/ df2['yes_bid_close'].shift(1)).dropna()
-        ut  = useful_tools()
-        ut.covariance_matrix(returns, returns2,True)
+        returns = self.ut.mid_price_returns(df)
+        returns2 = self.ut.mid_price_returns(df2)
+        self.ut.covariance_matrix(returns, returns2,True)
+
+    def heatmap_for_list_of_markets(self, series_markets,period_interval):
+        '''
+        series_markets parameter should be a 2d array in format of [[series,market],[series2,market2]]
+        '''
+        returns_matrix = []
+        for pair in series_markets:#put all returns in the matrix
+            df = self.candle_sticks_in_pandas(pair[0], pair[1], period_interval)
+            returns = self.ut.mid_price_returns(df)
+            returns_matrix.append(returns)
+            
+        min_length = min(len(returns) for returns in returns_matrix)#find shortest length of returns array
+        returns_matrix_aligned = []
+        for returns in returns_matrix:#make all returns array same lenght keeping end but shortening the start
+            aligned = returns[-min_length:] if len(returns) > min_length else returns
+            returns_matrix_aligned.append(aligned)
+        
+        returns_matrix_aligned = np.array(returns_matrix_aligned)
+        correlation_matrix = np.corrcoef(returns_matrix_aligned)
+        sns.heatmap(correlation_matrix, annot=True, fmt=".4f", cmap="coolwarm")
